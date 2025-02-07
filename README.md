@@ -28,8 +28,4 @@ Afterwards enter the following command to build and install dmenu
 
 ## Running dmenu
 
-usage: dmenu [-bfirv] [-l lines] [-h height] [-p prompt] [-fn font] [-m monitor]
-             [-no-escape] [-cn numbers] [-sf color] [-w windowid] [-sb color]
-             [-x offset] [-y offset] [-z width] [-nb color] [-nf color] [-n preselect]
-
-See the man page for more details.
+Refer to the man page.
