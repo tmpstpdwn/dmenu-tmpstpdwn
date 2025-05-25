@@ -1,0 +1,84 @@
+#!/bin/bash
+
+# config
+PROMPT="Apps"
+
+# desktop dirs
+DESKTOP_DIRS=(
+    "$HOME/.local/share/applications"
+    "/usr/share/applications"
+)
+
+# cache dir, file
+CACHE_DIR="$HOME/.cache/dmenu"
+MENU_CACHE="$CACHE_DIR/launcher"
+mkdir -p "$CACHE_DIR"
+
+# Function: Check if cache needs refresh 
+cache_needs_refresh() {
+    [[ ! -f "$MENU_CACHE" ]] && return 0
+    for dir in "${DESKTOP_DIRS[@]}"; do
+        if find "$dir" -name '*.desktop' -newer "$MENU_CACHE" -print -quit | grep -q .; then
+            return 0
+        fi
+    done
+    return 1
+}
+
+# Function: Build cache files from scratch
+build_cache() {
+    declare -A SEEN_EXEC
+    > "$MENU_CACHE"
+
+    for dir in "${DESKTOP_DIRS[@]}"; do
+        while IFS= read -r -d '' file; do
+            NAME=$(grep -m 1 '^Name=' "$file" | cut -d'=' -f2-)
+            EXEC=$(grep -m 1 '^Exec=' "$file" | cut -d'=' -f2- | sed 's/ *%[fFuUdDnNickvm]//g')
+            NEED_TERM=$(grep -m 1 '^Terminal=' "$file" | cut -d'=' -f2-)
+
+            # Skip if missing info or exec already seen
+            if [[ -z "$NAME" || -z "$EXEC" || -n "${SEEN_EXEC[$EXEC]}" ]]; then
+                continue
+            fi
+            SEEN_EXEC["$EXEC"]=1
+
+            # Store as: Name|Exec|Terminal (Terminal can be empty)
+            echo "$NAME|$EXEC|$NEED_TERM" >> "$MENU_CACHE"
+        done < <(find "$dir" -name "*.desktop" -print0)
+    done
+}
+
+# Build cache if needed
+if cache_needs_refresh; then
+    echo "Building cache..."
+    start=$(date +%s.%N)
+
+    build_cache
+
+    end=$(date +%s.%N)
+    duration=$(echo "$end - $start" | bc)
+    rounded=$(printf "%.2fs" "$duration")
+    echo "Done [${rounded}]."
+fi
+
+# Load menu items from cache
+MENU_ITEMS=$(awk -F'|' '{print $1}' "$MENU_CACHE")
+
+# Prompt user to select app
+CHOICE=$(echo "$MENU_ITEMS" | dmenu -i -r -p "$PROMPT:")
+
+# If user made a choice
+if [[ -n "$CHOICE" ]]; then
+    # Find exec and terminal info from menu cache
+    LINE=$(grep -F "$CHOICE|" "$MENU_CACHE" | head -n1)
+    # Parse line: Name|Exec|Terminal
+    IFS='|' read -r NAME EXEC NEED_TERM <<< "$LINE"
+
+    if [[ "$NEED_TERM" == "true" ]]; then
+        eval "$TERMINAL -e $EXEC" &
+    else
+        eval "$EXEC" &
+    fi
+fi
+
+# END
