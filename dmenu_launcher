@@ -12,23 +12,49 @@ DESKTOP_DIRS=(
 # cache dir, file
 CACHE_DIR="$HOME/.cache/dmenu"
 MENU_CACHE="$CACHE_DIR/launcher"
+COUNT_CACHE="$CACHE_DIR/launcher.count"
 mkdir -p "$CACHE_DIR"
 
 # Function: Check if cache needs refresh 
 cache_needs_refresh() {
+    # If cache doesn't exist, refresh
     [[ ! -f "$MENU_CACHE" ]] && return 0
+
+    # Count current .desktop files
+    current_count=0
+    for dir in "${DESKTOP_DIRS[@]}"; do
+        count=$(find "$dir" -name '*.desktop' 2>/dev/null | wc -l)
+        current_count=$((current_count + count))
+    done
+
+    # Read last count, refresh if missing
+    if [[ ! -f "$COUNT_CACHE" ]]; then
+        return 0
+    fi
+    last_count=$(<"$COUNT_CACHE")
+
+    # Refresh if counts differ
+    if [[ "$current_count" -ne "$last_count" ]]; then
+        return 0
+    fi
+
+    # Refresh if any .desktop files newer than cache
     for dir in "${DESKTOP_DIRS[@]}"; do
         if find "$dir" -name '*.desktop' -newer "$MENU_CACHE" -print -quit | grep -q .; then
             return 0
         fi
     done
+
     return 1
 }
 
-# Function: Build cache files from scratch
+# Build cache files from scratch
 build_cache() {
     declare -A SEEN_EXEC
     > "$MENU_CACHE"
+
+    # Track total number of .desktop files
+    total_count=0
 
     for dir in "${DESKTOP_DIRS[@]}"; do
         while IFS= read -r -d '' file; do
@@ -44,8 +70,13 @@ build_cache() {
 
             # Store as: Name|Exec|Terminal (Terminal can be empty)
             echo "$NAME|$EXEC|$NEED_TERM" >> "$MENU_CACHE"
+
+            total_count=$((total_count + 1))
         done < <(find "$dir" -name "*.desktop" -print0)
     done
+
+    # Save total count for refresh detection
+    echo "$total_count" > "$COUNT_CACHE"
 }
 
 # Build cache if needed
