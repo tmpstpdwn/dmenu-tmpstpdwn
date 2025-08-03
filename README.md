@@ -20,10 +20,7 @@ make clean install
 
 ## Applied patches
 
-- dmenu-bar-height-5.2.diff
-- dmenu-noinput-5.2.diff
-- dmenu-rejectnomatch-4.7.diff
-- dmenu-xresources-4.9.diff
+A lot of patches and custom changes have been made to the source.
 
 ## Running dmenu
 

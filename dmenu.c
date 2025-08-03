@@ -224,6 +224,7 @@ grabkeyboard(void)
 
 	if (embed)
 		return;
+
 	/* try to grab keyboard, we may have to wait for another process to ungrab */
 	for (i = 0; i < 1000; i++) {
 		if (XGrabKeyboard(dpy, DefaultRootWindow(dpy), True, GrabModeAsync,
@@ -591,6 +592,7 @@ readstdin(void)
 
 		items[i].out = 0;
 	}
+
 	free(line);
 	if (items)
 		items[i].text = NULL;
@@ -787,24 +789,27 @@ main(int argc, char *argv[])
 	XWindowAttributes wa;
 	int i, fast = 0;
 
-	for (i = 1; i < argc; i++)
+	for (i = 1; i < argc; i++) {
+
 		/* these options take no arguments */
 		if (!strcmp(argv[i], "-v")) {      /* prints version information */
 			puts("dmenu-"VERSION);
 			exit(0);
-		} else if (!strcmp(argv[i], "-b")) /* appears at the bottom of the screen */
+		} else if (!strcmp(argv[i], "-b")) { /* appears at the bottom of the screen */
 			topbar = 0;
-		else if (!strcmp(argv[i], "-f"))   /* grabs keyboard before reading stdin */
+		} else if (!strcmp(argv[i], "-f")) {  /* grabs keyboard before reading stdin */
 			fast = 1;
-	        else if (!strcmp(argv[i], "-noi")) /* no input field. intended to be used with a prompt */
+		} else if (!strcmp(argv[i], "-noi")) { /* no input field. intended to be used with a prompt */
 			draw_input = 0;
-		else if (!strcmp(argv[i], "-i")) { /* case-insensitive item matching */
+		} else if (!strcmp(argv[i], "-i")) { /* case-insensitive item matching */
 			fstrncmp = strncasecmp;
 			fstrstr = cistrstr;
-		} else if (!strcmp(argv[i], "-r")) /* reject input which results in no match */
+		} else if (!strcmp(argv[i], "-r")) { /* reject input which results in no match */
 			reject_no_match = 1;
-		else if (i + 1 == argc)
+		} else if (i + 1 == argc) {
 			usage();
+		}
+
 		/* these options take one argument */
 		else if (!strcmp(argv[i], "-l"))   /* number of lines in vertical list */
 			lines = atoi(argv[++i]);
@@ -826,30 +831,38 @@ main(int argc, char *argv[])
 			embed = argv[++i];
 		else
 			usage();
+		}
 
-	if (!setlocale(LC_CTYPE, "") || !XSupportsLocale())
+	if (!setlocale(LC_CTYPE, "") || !XSupportsLocale()) {
 		fputs("warning: no locale support\n", stderr);
-	if (!(dpy = XOpenDisplay(NULL)))
+	}
+	if (!(dpy = XOpenDisplay(NULL))) {
 		die("cannot open display");
+	}
+
 	screen = DefaultScreen(dpy);
 	root = RootWindow(dpy, screen);
+
 	if (!embed || !(parentwin = strtol(embed, NULL, 0)))
 		parentwin = root;
-	if (!XGetWindowAttributes(dpy, parentwin, &wa))
-		die("could not get embedding window attributes: 0x%lx",
-		    parentwin);
+
+	if (!XGetWindowAttributes(dpy, parentwin, &wa)) {
+		die("could not get embedding window attributes: 0x%lx", parentwin);
+	}
+
 	drw = drw_create(dpy, screen, root, wa.width, wa.height);
 	readxresources();
+
 	/* Now we check whether to override xresources with commandline parameters */
-	if ( tempfonts )
+	if (tempfonts)
 	   fonts[0] = strdup(tempfonts);
-	if ( colortemp[0])
+	if (colortemp[0])
 	   colors[SchemeNorm][ColBg] = strdup(colortemp[0]);
-	if ( colortemp[1])
+	if (colortemp[1])
 	   colors[SchemeNorm][ColFg] = strdup(colortemp[1]);
-	if ( colortemp[2])
+	if (colortemp[2])
 	   colors[SchemeSel][ColBg]  = strdup(colortemp[2]);
-	if ( colortemp[3])
+	if (colortemp[3])
 	   colors[SchemeSel][ColFg]  = strdup(colortemp[3]);
 
 	if (!drw_fontset_create(drw, (const char**)fonts, LENGTH(fonts)))
@@ -869,6 +882,7 @@ main(int argc, char *argv[])
 		readstdin();
 		grabkeyboard();
 	}
+
 	setup();
 	run();
 
